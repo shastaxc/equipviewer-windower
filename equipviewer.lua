@@ -5,29 +5,31 @@ _addon.commands = { 'equipviewer', 'ev' };
 
 require('pack');
 require('tables');
+local packets = require('packets');
+local res = require('resources');
 local config = require('config');
 local primitives = require('images');
 
 
 local texture_data =
 {
-	{ slot_name = 'bg', 		slot_id = -1, display_pos = -1, primitive = nil },
-	{ slot_name = 'main',		slot_id = 0, display_pos = 0, item_id = 0, primitive = nil },
-	{ slot_name = 'sub',		slot_id = 1, display_pos = 1, item_id = 0, primitive = nil },
-	{ slot_name = 'range',		slot_id = 2, display_pos = 2, item_id = 0, primitive = nil },
-	{ slot_name = 'ammo',		slot_id = 3, display_pos = 3, item_id = 0, primitive = nil },
-	{ slot_name = 'head',		slot_id = 4, display_pos = 4, item_id = 0, primitive = nil },
-	{ slot_name = 'body',		slot_id = 5, display_pos = 8, item_id = 0, primitive = nil },
-	{ slot_name = 'hands',		slot_id = 6, display_pos = 9, item_id = 0, primitive = nil },
-	{ slot_name = 'legs',		slot_id = 7, display_pos = 14, item_id = 0, primitive = nil },
-	{ slot_name = 'feet',		slot_id = 8, display_pos = 15, item_id = 0, primitive = nil },
-	{ slot_name = 'neck',		slot_id = 9, display_pos = 5, item_id = 0, primitive = nil },
-	{ slot_name = 'waist',		slot_id = 10, display_pos = 13, item_id = 0, primitive = nil },
-	{ slot_name = 'left_ear',	slot_id = 11, display_pos = 6, item_id = 0, primitive = nil },
-	{ slot_name = 'right_ear',	slot_id = 12, display_pos = 7, item_id = 0, primitive = nil },	
-	{ slot_name = 'left_ring',	slot_id = 13, display_pos = 10, item_id = 0, primitive = nil },
-	{ slot_name = 'right_ring',	slot_id = 14, display_pos = 11, item_id = 0, primitive = nil },
-	{ slot_name = 'back',		slot_id = 15, display_pos = 12, item_id = 0, primitive = nil },
+	{ slot_name = 'bg', slot_id = -1, display_pos = -1, primitive = nil },
+	{ slot_name = 'main', slot_id = 0, display_pos = 0, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'sub', slot_id = 1, display_pos = 1, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'range', slot_id = 2, display_pos = 2, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'ammo', slot_id = 3, display_pos = 3, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'head', slot_id = 4, display_pos = 4, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'body', slot_id = 5, display_pos = 8, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'hands', slot_id = 6, display_pos = 9, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'legs', slot_id = 7, display_pos = 14, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'feet', slot_id = 8, display_pos = 15, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'neck', slot_id = 9, display_pos = 5, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'waist', slot_id = 10, display_pos = 13, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'left_ear', slot_id = 11, display_pos = 6, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'right_ear', slot_id = 12, display_pos = 7, item_id = 0, primitive = nil, was_checked_once = false },	
+	{ slot_name = 'left_ring', slot_id = 13, display_pos = 10, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'right_ring', slot_id = 14, display_pos = 11, item_id = 0, primitive = nil, was_checked_once = false },
+	{ slot_name = 'back', slot_id = 15, display_pos = 12, item_id = 0, primitive = nil, was_checked_once = false },
 };
 
 local default_settings =
@@ -105,7 +107,10 @@ local function update_equipment_slot_texture(slotIndex)
 					--value['primitive']:clear();
 					value['primitive']:hide();
 					value['item_id'] = 0;
-				elseif (value['item_id'] == 0 or value['item_id'] ~= item['id']) then -- Slot has been equipped
+        elseif (value['item_id'] == 0 or value['item_id'] ~= item['id']) then -- Slot has been equipped
+          if value['was_checked_once'] == false then
+            value['was_checked_once'] = true;
+          end
 					value['item_id'] = item['id'];
 					local icon_path = string.format('%sicons/%d/%d.png', windower.addon_path, default_settings['size'], value['item_id']);
 					if (windower.file_exists(icon_path)) then
@@ -167,11 +172,8 @@ end);
 -- desc: Triggers on login.
 ---------------------------------------------------------------------------------------------------
 windower.register_event('login', function()
-  for key, value in pairs(texture_data) do
-		if (value['primitive'] ~= nil) then
-			value['primitive']:show();
-		end
-	end
+  -- Display background
+  texture_data[1]['primitive']:show();
 end);
 
 ---------------------------------------------------------------------------------------------------
@@ -220,6 +222,28 @@ end
 -- desc: Called when our addon receives an incoming chunk.
 ---------------------------------------------------------------------------------------------------
 windower.register_event('incoming chunk', function(id, original, modified, injected, blocked)
+  if (id == 32) then --This packet is sent for items in inventory upon login and zoning
+    local packet = packets.parse('incoming', original)
+    if packet.Status ~= 0 then --Item is equipped if status not 0
+      local item_id = packet.Item;
+      local item = res.items:with('id', item_id);
+      local item_name = item.en;
+      -- Must check all slots item could potentially be equipped to
+      -- Some items have multiple options like rings
+      if item.slots ~= nil then
+        for k,v in pairs(item.slots) do
+          if v == true then
+            local slot_id = k;
+            -- Update only if slot has not been checked since login
+            local slot_data = texture_data[slot_id+2];
+            if slot_data['was_checked_once'] == false then
+              update_equipment_slot_texture(slot_id);
+            end
+          end
+        end
+      end
+    end
+  end
 	if (id == 0x0050) then
     local slot = original:unpack('c', 0x05 + 1);
 		update_equipment_slot_texture(slot);
@@ -265,6 +289,10 @@ windower.register_event('logout', function()
 	for key, value in pairs(texture_data) do
 		if (value['primitive'] ~= nil) then
       value['primitive']:hide();
+      if value['slot_id'] >= 0 then
+        value['item_id'] = 0;
+        value['was_checked_once'] = false;
+      end
     end
 	end
 
