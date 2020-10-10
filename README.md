@@ -11,7 +11,10 @@ Overlays your currently equipped items onto the screen anywhere. Basically just 
 * ev clear - Same as above
 
 ## To use
-1. Must use Windower. Does not work with Ashita.
+*Must use Windower. Does not work with Ashita.*
+
+Download latest release here: https://github.com/shastaxc/equipviewer-windower/releases/tag/v1.0.0
+
 1. Start by creating a folder in your addons folder called equipviewer.
 1. Place the equipviewer.lua file in your equipviewer folder.
 1. Unzip the file in the icons folder.
