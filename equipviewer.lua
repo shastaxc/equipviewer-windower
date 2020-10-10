@@ -222,7 +222,7 @@ end
 -- desc: Called when our addon receives an incoming chunk.
 ---------------------------------------------------------------------------------------------------
 windower.register_event('incoming chunk', function(id, original, modified, injected, blocked)
-  if (id == 32) then --This packet is sent for items in inventory upon login and zoning
+  if (id == 0x0020) then --This packet is sent for items in inventory upon login and zoning
     local packet = packets.parse('incoming', original)
     if packet.Status ~= 0 then --Item is equipped if status not 0
       local item_id = packet.Item;
