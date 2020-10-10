@@ -18,6 +18,7 @@ Download latest release here: https://github.com/shastaxc/equipviewer-windower/r
 1. Start by creating a folder in your addons folder called equipviewer.
 1. Place the equipviewer.lua file in your equipviewer folder.
 1. Unzip the file in the icons folder.
+1. Add this to the bottom of your windower init.txt file: `lua l equipviewer`
 
 Your directory structure should look like this:
   * equipviewer/
