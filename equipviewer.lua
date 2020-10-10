@@ -263,7 +263,7 @@ end);
 ---------------------------------------------------------------------------------------------------
 windower.register_event('logout', function()
 	for key, value in pairs(texture_data) do
-    if (value['slot_name'] == 'bg') then
+		if (value['primitive'] ~= nil) then
       value['primitive']:hide();
     end
 	end
