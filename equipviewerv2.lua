@@ -61,7 +61,7 @@ end
 ---------------------------------------------------------------------------------------------------
 local function update_equipment_textures()
 	for key, value in pairs(texture_data) do
-		local item = get_equipped_item(value['slot_name'], value['slot_id']);
+    local item = get_equipped_item(value['slot_name'], value['slot_id']);
 		if (item ~= nil) then
 			if (item['id'] == 0 or item['id'] == 65535) then
 				--value['primitive']:clear();
@@ -88,14 +88,14 @@ end
 ---------------------------------------------------------------------------------------------------
 local function update_equipment_slot_texture(slotIndex)
 	for key, value in pairs(texture_data) do
-		if (value['slot_id'] == slotIndex) then
-			local item = get_equipped_item(value['slot_name'], value['slot_id']);
+    if (value['slot_id'] == slotIndex) then
+      local item = get_equipped_item(value['slot_name'], value['slot_id']);
 			if (item ~= nil) then
-				if (item['id'] == 0 or item['id'] == 65535) then
+				if (item['id'] == 0 or item['id'] == 65535) then -- Slot has been unequipped
 					--value['primitive']:clear();
 					value['primitive']:hide();
 					value['item_id'] = 0;
-				elseif (value['item_id'] == 0 or value['item_id'] ~= item['id']) then
+				elseif (value['item_id'] == 0 or value['item_id'] ~= item['id']) then -- Slot has been equipped
 					value['item_id'] = item['id'];
 					local icon_path = string.format('%sicons/%d/%d.png', windower.addon_path, default_settings['size'], value['item_id']);
 					if (windower.file_exists(icon_path)) then
@@ -155,29 +155,33 @@ end);
 ---------------------------------------------------------------------------------------------------
 windower.register_event('addon command', function (...)
 	local cmd  = (...) and (...):lower();
-    local cmd_args = { select(2, ...) };
+  local cmd_args = { select(2, ...) };
 
-    if (cmd == 'position' or cmd == 'pos') then
-    	if (#cmd_args < 2) then
-    		return;
-    	end
+  if (cmd == 'position' or cmd == 'pos') then
+    if (#cmd_args < 2) then
+      return;
+    end
 
-    	default_settings['pos']['x'] = tonumber(cmd_args[1]);
-    	default_settings['pos']['y'] = tonumber(cmd_args[2]);
+    default_settings['pos']['x'] = tonumber(cmd_args[1]);
+    default_settings['pos']['y'] = tonumber(cmd_args[2]);
 
-    	for key, value in pairs(texture_data) do
-			if (value['primitive'] ~= nil) then
-				value['primitive']:destroy();
-			end
-		end
+    reset_display()
 
-		setup_textures();
 	elseif (cmd == 'size') then
 		if (#cmd_args < 1) then
 			return;
 		end
 
-		default_settings['size'] = tonumber(cmd_args[1]);
+    default_settings['size'] = tonumber(cmd_args[1]);
+
+    reset_display()
+
+  elseif (cmd == 'clear' or cmd == 'reset') then
+    reset_display()
+  end
+end);
+
+function reset_display()
 		for key, value in pairs(texture_data) do
 			if (value['primitive'] ~= nil) then
 				value['primitive']:destroy();
@@ -185,16 +189,14 @@ windower.register_event('addon command', function (...)
 		end
 
 		setup_textures();
-    end
-end);
-
+end
 ---------------------------------------------------------------------------------------------------
 -- func: incoming chunk
 -- desc: Called when our addon receives an incoming chunk.
 ---------------------------------------------------------------------------------------------------
 windower.register_event('incoming chunk', function(id, original, modified, injected, blocked)
 	if (id == 0x0050) then
-		local slot = original:unpack('c', 0x05 + 1);
+    local slot = original:unpack('c', 0x05 + 1);
 		update_equipment_slot_texture(slot);
 	end
 end);
@@ -228,4 +230,12 @@ windower.register_event('unload', function()
 	end
 
 	config.save(default_settings);
+end);
+
+---------------------------------------------------------------------------------------------------
+-- func: job change
+-- desc: Triggers on job change. This will trigger on both main and sub job change.
+---------------------------------------------------------------------------------------------------
+windower.register_event('job change', function(main_job_id, main_job_level, sub_job_id, sub_job_level)
+  reset_display()
 end);
