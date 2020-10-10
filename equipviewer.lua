@@ -60,9 +60,19 @@ end
 -- desc: Updates the texture for all slots if it's a different piece of equipment
 ---------------------------------------------------------------------------------------------------
 local function update_equipment_textures()
-	for key, value in pairs(texture_data) do
+  local player = windower.ffxi.get_player(); --Detect if logged in or not
+
+  for key, value in pairs(texture_data) do
+    
     local item = get_equipped_item(value['slot_name'], value['slot_id']);
-		if (item ~= nil) then
+    
+    if (value['slot_name'] == 'bg') then
+      if player ~= nil then
+        value['primitive']:show();
+      else
+        value['primitive']:hide();
+      end
+		elseif (item ~= nil) then
 			if (item['id'] == 0 or item['id'] == 65535) then
 				--value['primitive']:clear();
 				value['primitive']:hide();
@@ -116,14 +126,17 @@ end
 -- desc: Sets up the primitive objects for our equipment
 ---------------------------------------------------------------------------------------------------
 local function setup_textures()
+  local player = windower.ffxi.get_player()
 	-- loop through and create the primitive objects
 	-- 17 total objects. 1 background, 16 equipment slots
 	for key, value in pairs(texture_data) do
 		value['item_id'] = 0;
 		-- background is treated differently than the rest
 		if (value['slot_name'] == 'bg') then
-			value['primitive'] = primitives.new({ ['color'] = { ['alpha'] = 128, ['red'] = 0, ['blue'] = 0, ['green'] = 0 }, ['pos'] = { ['x'] = default_settings['pos']['x'], ['y'] = default_settings['pos']['y'] }, ['size'] = { ['width'] = default_settings['size'] * 4, ['height'] = default_settings['size'] * 4 }, ['draggable'] = false });
-			value['primitive']:show();
+      value['primitive'] = primitives.new({ ['color'] = { ['alpha'] = 128, ['red'] = 0, ['blue'] = 0, ['green'] = 0 }, ['pos'] = { ['x'] = default_settings['pos']['x'], ['y'] = default_settings['pos']['y'] }, ['size'] = { ['width'] = default_settings['size'] * 4, ['height'] = default_settings['size'] * 4 }, ['draggable'] = false });
+      if player ~= nil then
+        value['primitive']:show();
+      end
 		else
 			local pos_x = default_settings['pos']['x'] + ((value['display_pos'] % 4) * default_settings['size']);
 			local pos_y = default_settings['pos']['y'] + (math.floor(value['display_pos'] / 4) * default_settings['size']);
@@ -144,9 +157,21 @@ windower.register_event('load', function()
 
 	if not (windower.dir_exists(string.format('%sicons', windower.addon_path))) then
 		windower.create_dir(string.format('%sicons', windower.addon_path));
-	end
+  end
 
-	setup_textures();
+  setup_textures();
+end);
+
+---------------------------------------------------------------------------------------------------
+-- func: login
+-- desc: Triggers on login.
+---------------------------------------------------------------------------------------------------
+windower.register_event('login', function()
+  for key, value in pairs(texture_data) do
+		if (value['primitive'] ~= nil) then
+			value['primitive']:show();
+		end
+	end
 end);
 
 ---------------------------------------------------------------------------------------------------
@@ -227,6 +252,20 @@ windower.register_event('unload', function()
 		if (value['primitive'] ~= nil) then
 			value['primitive']:destroy();
 		end
+	end
+
+	config.save(default_settings);
+end);
+
+---------------------------------------------------------------------------------------------------
+-- func: logout
+-- desc: Triggers on logout.
+---------------------------------------------------------------------------------------------------
+windower.register_event('logout', function()
+	for key, value in pairs(texture_data) do
+    if (value['slot_name'] == 'bg') then
+      value['primitive']:hide();
+    end
 	end
 
 	config.save(default_settings);
